@@ -285,7 +285,7 @@ class HomePage extends StatelessWidget {
             "10.00 a.m - 11.20 a.m",
             "LR14",
             isQuiz: true,
-            date: "11/5/2022",
+            date: "11/5/2025",
           ),
         ),
       ],
