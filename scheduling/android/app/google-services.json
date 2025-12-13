@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "425854454704",
+    "project_id": "schedulingfyp-e383b",
+    "storage_bucket": "schedulingfyp-e383b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:425854454704:android:49948a92af24f188282475",
+        "android_client_info": {
+          "package_name": "com.example.scheduling"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBJkP_4q0luHfgfPRilj_WanhICqKybbE0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
