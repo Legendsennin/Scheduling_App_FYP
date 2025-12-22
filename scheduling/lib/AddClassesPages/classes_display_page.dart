@@ -72,11 +72,8 @@ class _ClassesDisplayPageState extends State<ClassesDisplayPage> {
                   ElevatedButton(
                     onPressed: () {
                       // Navigate to the Add Classes Page
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const AddClassesPage(),
-                        ),
+                      Navigator.pushNamed(
+                        context, '/addclasses',
                       );
                     },
                     style: ElevatedButton.styleFrom(

@@ -70,6 +70,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '425854454704',
     projectId: 'schedulingfyp-e383b',
     storageBucket: 'schedulingfyp-e383b.firebasestorage.app',
+    iosClientId: '425854454704-dl4rf2r93gj462r7pprhbg37u2dglt91.apps.googleusercontent.com',
     iosBundleId: 'com.example.scheduling',
   );
+
 }

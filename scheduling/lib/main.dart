@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:scheduling/AddClassesPages/home_page.dart';
+import 'package:scheduling/FileViewPages/file_upload_page.dart';
+import 'package:scheduling/LoginAuthPages/homescreen.dart';
 import 'firebase_options.dart';
 import 'AddClassesPages/classes_display_page.dart';
 import 'AddClassesPages/add_classes_page.dart';
-
+import 'FileViewPages/folders_grid_page.dart';
+import 'AddClassesPages/home_page.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -24,10 +28,12 @@ class MyApp extends StatelessWidget {
         // This ensures the blue color looks consistent across devices
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF4A7BEE)),
       ),
-      home: const ClassesDisplayPage(),
+      home: const FoldersGridPage(),
       routes: {
         '/addclasses': (context) => const AddClassesPage(),
         '/classesdisplay': (context) => const ClassesDisplayPage(),
+        '/folderspage': (context) => const FoldersGridPage(),
+        '/fileupload': (context) => const FileUploadPage(),
       },
     );
   }
