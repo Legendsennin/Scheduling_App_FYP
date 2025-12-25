@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:taskfission_1/screens/signup/signup_email.dart';
 import '../services/auth_service.dart';
-import 'dashboard/dashboard_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -14,17 +12,27 @@ class _LoginScreenState extends State<LoginScreen> {
   final _email = TextEditingController();
   final _password = TextEditingController();
   final _auth = AuthService();
+  bool _loading = false;
 
   Future<void> _login() async {
-    try {
-      await _auth.login(_email.text, _password.text);
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const DashboardScreen()),
+    if (_email.text.isEmpty || _password.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Email and password required')),
       );
+      return;
+    }
+
+    setState(() => _loading = true);
+
+    try {
+      await _auth.login(_email.text.trim(), _password.text.trim());
+
+      Navigator.pushReplacementNamed(context, '/dashboard');
     } catch (e) {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(e.toString())));
+    } finally {
+      setState(() => _loading = false);
     }
   }
 
@@ -59,24 +67,10 @@ class _LoginScreenState extends State<LoginScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _login,
-                child: const Text('Continue'),
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            Center(
-              child: TextButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const SignupEmail(),
-                    ),
-                  );
-                },
-                child: const Text('Create account'),
+                onPressed: _loading ? null : _login,
+                child: _loading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text('Continue'),
               ),
             ),
           ],

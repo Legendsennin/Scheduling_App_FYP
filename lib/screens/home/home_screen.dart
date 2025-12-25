@@ -28,6 +28,19 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Dashboard'),
+        actions: [
+          if (_currentIndex == 0) // 👈 profile icon ONLY on Home
+            IconButton(
+              icon: const Icon(Icons.person),
+              onPressed: () {
+                // later: Navigator.push to ProfilePage
+              },
+            ),
+        ],
+      ),
+
       body: _pages[_currentIndex],
 
       bottomNavigationBar: BottomNavigationBar(

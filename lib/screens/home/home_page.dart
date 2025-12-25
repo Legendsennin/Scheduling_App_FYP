@@ -8,7 +8,7 @@ class HomePage extends StatelessWidget {
     return const Center(
       child: Text(
         'Home',
-        style: TextStyle(fontSize: 22),
+        style: TextStyle(fontSize: 18),
       ),
     );
   }

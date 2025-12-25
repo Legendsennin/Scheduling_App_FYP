@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:taskfission_1/screens/login_screen.dart';
 import 'package:taskfission_1/screens/dashboard/dashboard_screen.dart';
 import 'firebase_options.dart';
-
-import 'screens/login_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,7 +21,6 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Student Schedule App',
 
-      // ✅ KEEP YOUR THEME
       theme: ThemeData(
         scaffoldBackgroundColor: const Color(0xFFF6F7FB),
         primaryColor: const Color(0xFF6C63FF),
@@ -41,8 +39,14 @@ class MyApp extends StatelessWidget {
         ),
       ),
 
-      // ✅ START APP HERE (NO CHANGE)
-      home: const DashboardScreen(),
+      // ✅ START PAGE
+      initialRoute: '/login',
+
+      // ✅ ROUTES (IMPORTANT FIX)
+      routes: {
+        '/login': (context) => const LoginScreen(),
+        '/dashboard': (context) => const DashboardScreen(),
+      },
     );
   }
 }
