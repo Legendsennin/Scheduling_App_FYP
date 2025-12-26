@@ -1,71 +1,90 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  /// 🔍 Check if email already exists (USED IN signup_email.dart)
+  /// 🔍 Check if email already exists
   Future<void> checkEmailExists(String email) async {
     final methods = await _auth.fetchSignInMethodsForEmail(email);
-
     if (methods.isNotEmpty) {
       throw Exception('Email already in use');
     }
   }
 
-  /// 📝 Register new user (USED IN signup_password.dart)
+  /// 📝 Register new user
   Future<void> register(
     String email,
     String password,
     Map<String, dynamic> userData,
   ) async {
-    try {
-      // Create user
-      final credential = await _auth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+    final credential = await _auth.createUserWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
 
-      final user = credential.user;
-      if (user == null) {
-        throw Exception('Failed to create user');
-      }
+    final user = credential.user;
+    if (user == null) {
+      throw Exception('Failed to create user');
+    }
 
-      // Save profile to Firestore
-      await _db.collection('users').doc(user.uid).set({
-        'email': email,
-        'name': userData['name'],
-        'dob': userData['dob'],
-        'gender': userData['gender'],
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+    await _db.collection('users').doc(user.uid).set({
+      'email': email,
+      'name': userData['name'],
+      'dob': userData['dob'],
+      'gender': userData['gender'],
+      'createdAt': FieldValue.serverTimestamp(),
+    });
 
-      // Send verification email
-      await user.sendEmailVerification();
-    } on FirebaseAuthException catch (e) {
-      throw Exception(e.message ?? 'Registration failed');
+    await user.sendEmailVerification();
+  }
+
+  /// 🔐 EMAIL LOGIN
+  Future<void> login(String email, String password) async {
+    final credential = await _auth.signInWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
+
+    if (!credential.user!.emailVerified) {
+      throw Exception('Please verify your email before logging in');
     }
   }
 
-  /// 🔐 Login (USED IN login_screen.dart)
-  Future<void> login(String email, String password) async {
-    try {
-      final credential = await _auth.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+  /// 🔑 GOOGLE LOGIN (🔥 THIS WAS MISSING)
+  Future<void> signInWithGoogle() async {
+    final googleUser = await GoogleSignIn().signIn();
+    if (googleUser == null) return;
 
-      if (!credential.user!.emailVerified) {
-        throw Exception('Please verify your email before logging in');
-      }
-    } on FirebaseAuthException catch (e) {
-      throw Exception(e.message ?? 'Login failed');
+    final googleAuth = await googleUser.authentication;
+
+    final credential = GoogleAuthProvider.credential(
+      accessToken: googleAuth.accessToken,
+      idToken: googleAuth.idToken,
+    );
+
+    final userCredential =
+        await _auth.signInWithCredential(credential);
+
+    final user = userCredential.user;
+    if (user == null) return;
+
+    // Create Firestore profile if first time
+    final doc = await _db.collection('users').doc(user.uid).get();
+    if (!doc.exists) {
+      await _db.collection('users').doc(user.uid).set({
+        'email': user.email,
+        'name': user.displayName ?? '',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
     }
   }
 
   /// 🚪 Logout
   Future<void> logout() async {
+    await GoogleSignIn().signOut();
     await _auth.signOut();
   }
 }

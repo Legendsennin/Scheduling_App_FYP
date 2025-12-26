@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:taskfission_1/screens/login_screen.dart';
-import 'package:taskfission_1/screens/dashboard/dashboard_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
+
+import 'screens/login_screen.dart';
+import 'screens/dashboard/dashboard_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,33 +21,30 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Student Schedule App',
+      home: const AuthGate(),
+    );
+  }
+}
 
-      theme: ThemeData(
-        scaffoldBackgroundColor: const Color(0xFFF6F7FB),
-        primaryColor: const Color(0xFF6C63FF),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF6C63FF),
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            padding: const EdgeInsets.symmetric(vertical: 16),
-          ),
-        ),
-        inputDecorationTheme: const InputDecorationTheme(
-          border: UnderlineInputBorder(),
-        ),
-      ),
+class AuthGate extends StatelessWidget {
+  const AuthGate({super.key});
 
-      // ✅ START PAGE
-      initialRoute: '/login',
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
 
-      // ✅ ROUTES (IMPORTANT FIX)
-      routes: {
-        '/login': (context) => const LoginScreen(),
-        '/dashboard': (context) => const DashboardScreen(),
+        if (snapshot.hasData) {
+          return const DashboardScreen();
+        }
+
+        return const LoginScreen();
       },
     );
   }

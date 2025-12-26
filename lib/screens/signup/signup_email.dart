@@ -15,13 +15,13 @@ class _SignupEmailState extends State<SignupEmail> {
 
   void _next() async {
     try {
-      await AuthService().checkEmailExists(_emailController.text);
+      await AuthService().checkEmailExists(_emailController.text.trim());
 
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (_) => SignupName(
-            signupData: {'email': _emailController.text},
+            signupData: {'email': _emailController.text.trim()},
           ),
         ),
       );
@@ -36,6 +36,8 @@ class _SignupEmailState extends State<SignupEmail> {
     return SignupScaffold(
       step: 1,
       onContinue: _next,
+
+      // 🔹 ONLY EMAIL FIELD HERE
       child: TextField(
         controller: _emailController,
         decoration: const InputDecoration(labelText: 'Email'),

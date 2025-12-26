@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../services/auth_service.dart';
+import 'package:taskfission_1/screens/signup/signup_email.dart';
+import 'package:taskfission_1/services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -12,6 +13,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _email = TextEditingController();
   final _password = TextEditingController();
   final _auth = AuthService();
+
   bool _loading = false;
 
   Future<void> _login() async {
@@ -26,13 +28,22 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       await _auth.login(_email.text.trim(), _password.text.trim());
-
-      Navigator.pushReplacementNamed(context, '/dashboard');
+      // ❌ NO NAVIGATOR HERE
+      // AuthGate will redirect automatically
     } catch (e) {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _googleLogin() async {
+    try {
+      await _auth.signInWithGoogle();
+    } catch (e) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.toString())));
     }
   }
 
@@ -62,7 +73,7 @@ class _LoginScreenState extends State<LoginScreen> {
               obscureText: true,
               decoration: const InputDecoration(labelText: 'Password'),
             ),
-            const SizedBox(height: 40),
+            const SizedBox(height: 30),
 
             SizedBox(
               width: double.infinity,
@@ -70,7 +81,39 @@ class _LoginScreenState extends State<LoginScreen> {
                 onPressed: _loading ? null : _login,
                 child: _loading
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text('Continue'),
+                    : const Text('Login'),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // 🔹 GOOGLE SIGN IN
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                icon: Image.asset(
+                  'assets/google.png',
+                  height: 20,
+                ),
+                label: const Text('Sign in with Google'),
+                onPressed: _googleLogin,
+              ),
+            ),
+
+            const SizedBox(height: 30),
+
+            // 🔹 CREATE ACCOUNT (RESTORED)
+            Center(
+              child: TextButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const SignupEmail(),
+                    ),
+                  );
+                },
+                child: const Text('Create account'),
               ),
             ),
           ],

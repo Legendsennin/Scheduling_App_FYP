@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import 'add_task_screen.dart';
+import 'task_detail_screen.dart';
 
 class TasksScreen extends StatelessWidget {
   const TasksScreen({super.key});
@@ -29,7 +30,7 @@ class TasksScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Tasks and Exams'),
+        title: const Text('Tasks'),
         actions: [
           IconButton(
             icon: const Icon(Icons.search),
@@ -139,8 +140,6 @@ class TasksScreen extends StatelessWidget {
                   fontSize: 16,
                 ),
               ),
-              const Spacer(),
-              const Icon(Icons.add, color: Colors.white),
             ],
           ),
         ),
@@ -154,22 +153,71 @@ class TasksScreen extends StatelessWidget {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(14),
             ),
-            child: ListTile(
-              title: Text(
-                data['title'],
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              subtitle: Text(
-                'Due: ${dueDate.toDate().day}/${dueDate.toDate().month}/${dueDate.toDate().year}',
-              ),
-              trailing: completedSection
-                  ? const Icon(Icons.check_circle, color: Colors.green)
-                  : IconButton(
-                      icon: const Icon(Icons.check_circle_outline),
-                      onPressed: () async {
-                        await doc.reference.update({'completed': true});
-                      },
+            child: InkWell(
+              borderRadius: BorderRadius.circular(14),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => TaskDetailScreen(taskDoc: doc),
+                  ),
+                );
+              },
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            data['title'],
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+
+                          if ((data['details'] ?? '').toString().isNotEmpty) ...[
+                            const SizedBox(height: 6),
+                            Text(
+                              data['details'],
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey.shade700,
+                              ),
+                            ),
+                          ],
+
+                          const SizedBox(height: 8),
+                          Text(
+                            'Due: ${dueDate.toDate().day}/${dueDate.toDate().month}/${dueDate.toDate().year}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
+
+                    completedSection
+                        ? const Icon(Icons.check_circle,
+                            color: Colors.green)
+                        : IconButton(
+                            icon:
+                                const Icon(Icons.check_circle_outline),
+                            onPressed: () async {
+                              await doc.reference
+                                  .update({'completed': true});
+                            },
+                          ),
+                  ],
+                ),
+              ),
             ),
           );
         }),
