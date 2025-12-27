@@ -1,0 +1,82 @@
+{
+  "project_info": {
+    "project_number": "425854454704",
+    "project_id": "schedulingfyp-e383b",
+    "storage_bucket": "schedulingfyp-e383b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:425854454704:android:49948a92af24f188282475",
+        "android_client_info": {
+          "package_name": "com.example.scheduling"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "425854454704-4u7u7h19niva1ocenofq0ooc18h64duq.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBJkP_4q0luHfgfPRilj_WanhICqKybbE0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "425854454704-4u7u7h19niva1ocenofq0ooc18h64duq.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "425854454704-dl4rf2r93gj462r7pprhbg37u2dglt91.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.scheduling"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:425854454704:android:3ed457bf8fefdde2282475",
+        "android_client_info": {
+          "package_name": "com.example.taskfission"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "425854454704-4u7u7h19niva1ocenofq0ooc18h64duq.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBJkP_4q0luHfgfPRilj_WanhICqKybbE0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "425854454704-4u7u7h19niva1ocenofq0ooc18h64duq.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "425854454704-dl4rf2r93gj462r7pprhbg37u2dglt91.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.scheduling"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
