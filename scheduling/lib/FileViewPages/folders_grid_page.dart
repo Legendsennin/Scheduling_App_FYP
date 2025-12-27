@@ -1,16 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
-import 'files_list_page.dart'; // Ensure this matches your actual file name
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:intl/intl.dart'; 
 
-// Mock Model for Folders
-class FolderData {
-  final String name;
-  final String date;
-  final Color color;
-  final Color iconColor;
-
-  FolderData(this.name, this.date, this.color, this.iconColor);
-}
+import 'package:scheduling/FirebaseServices/folder_service.dart'; // Import the service
+import 'files_list_page.dart';
+import 'feature_utils.dart'; // Your provided utils file
 
 class FoldersGridPage extends StatefulWidget {
   const FoldersGridPage({super.key});
@@ -20,43 +16,17 @@ class FoldersGridPage extends StatefulWidget {
 }
 
 class _FoldersGridPageState extends State<FoldersGridPage> {
-  // Mock Data (The Master List)
-  final List<FolderData> _allFolders = [
-    FolderData("OOP", "12/12/2025", const Color(0xFFE3F2FD), const Color(0xFF4285F4)),
-    FolderData("English", "14/12/2025", const Color(0xFFFFF8E1), const Color(0xFFFFCA28)),
-    FolderData("CAAL", "11/11/2025", const Color(0xFFFFEBEE), const Color(0xFFEF5350)),
-    FolderData("Maths 3", "10/11/2025", const Color(0xFFE8F5E9), const Color(0xFF66BB6A)),
-    FolderData("Business Fund", "10/11/2025", const Color(0xFFE3F2FD), const Color(0xFF4285F4)),
-    FolderData("Software Testing", "10/11/2025", const Color(0xFFF3E5F5), const Color(0xFFAB47BC)),
-  ];
+  // Service Instance
+  final FolderService _folderService = FolderService();
+  
+  // Get current user (Make sure user is logged in before accessing this page)
+ //final String userId = FirebaseAuth.instance.currentUser!.uid;
 
-  // The Display List (What shows on screen)
-  List<FolderData> _filteredFolders = [];
+ // TEMPORARY: Hardcoded ID for testing since Login isn't ready
+  final String userId = "student_test_user_001";
 
-  @override
-  void initState() {
-    super.initState();
-    // Initially, the display list is the same as the master list
-    _filteredFolders = _allFolders;
-  }
-
-  // Filter Function for searching specific folders/files
-  void _runFilter(String enteredKeyword) {
-    List<FolderData> results = [];
-    if (enteredKeyword.isEmpty) {
-      results = _allFolders;
-    } else {
-      results = _allFolders
-          .where((folder) =>
-              folder.name.toLowerCase().contains(enteredKeyword.toLowerCase()))
-          .toList();
-    }
-
-    // Refresh the UI
-    setState(() {
-      _filteredFolders = results;
-    });
-  }
+  // Search State
+  String _searchKeyword = "";
 
   @override
   Widget build(BuildContext context) {
@@ -70,7 +40,8 @@ class _FoldersGridPageState extends State<FoldersGridPage> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-// Floating add button with two options: Upload File and Add New Folder
+      
+      // FLOATING ACTION BUTTON
       floatingActionButton: SpeedDial(
         icon: Icons.add,
         overlayColor: Colors.white,
@@ -81,46 +52,58 @@ class _FoldersGridPageState extends State<FoldersGridPage> {
             label: 'Upload File',
             backgroundColor: const Color(0xFF4A72FF),
             onTap: () {
-                        // Navigate to the Upload Page
-                    Navigator.pushNamed(context, '/fileupload');            },
+              Navigator.pushNamed(context, '/fileupload');
+            },
           ),
           SpeedDialChild(
             child: const Icon(Icons.create_new_folder, color: Colors.white),
             label: 'Add New Folder',
             backgroundColor: const Color(0xFF4A72FF),
             onTap: () {
-              // Logic for New Folder
+              // 1. OPEN DIALOG FROM UTILS
+              FeatureUtils.showCreateFolderDialog(
+                context, 
+                // 2. HANDLE CALLBACK
+                (name, colors) {
+                  // 3. CALL FIRESTORE SERVICE
+                  _folderService.createManualFolder(
+                    userId, 
+                    name, 
+                    colors[0], // Background Color
+                    colors[1]  // Icon Color
+                  );
+                }
+              );
             },
           ),
         ],
       ),
+
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Row section for title and upload files n folder icons
-            Row(
+            const Row(
               children: [
-                const Text(
+                Text(
                   "Folders and Files 📂",
                   style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                       color: Color(0xFF1A237E)),
                 ),
-                const SizedBox(width: 30),
-                
               ],
             ),
-
             const SizedBox(height: 20),
 
-            
-
-            // Search Bar
+            // SEARCH BAR
             TextField(
-              onChanged: (value) => _runFilter(value), // Calls filter logic
+              onChanged: (value) {
+                setState(() {
+                  _searchKeyword = value.toLowerCase();
+                });
+              },
               decoration: InputDecoration(
                 hintText: "Search",
                 prefixIcon: const Icon(Icons.search),
@@ -135,58 +118,86 @@ class _FoldersGridPageState extends State<FoldersGridPage> {
             ),
             const SizedBox(height: 20),
 
-            
-
-            // GRID VIEW (Uses _filteredFolders now)
+            // STREAM BUILDER (Replaces local GridView)
             Expanded(
-              child: GridView.builder(
-                itemCount: _filteredFolders.length,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 15,
-                  mainAxisSpacing: 15,
-                  childAspectRatio: 1.1,
-                ),
-                itemBuilder: (context, index) {
-                  return _buildFolderCard(_filteredFolders[index]);
+              child: StreamBuilder<QuerySnapshot>(
+                stream: _folderService.getUserFolders(userId),
+                builder: (context, snapshot) {
+                  // Loading State
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  // Error State
+                  if (snapshot.hasError) {
+                    return Center(child: Text("Error: ${snapshot.error}"));
+                  }
+
+                  // Filter Data based on Search
+                  final docs = snapshot.data?.docs ?? [];
+                  final filteredDocs = docs.where((doc) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    final name = (data['name'] ?? '').toString().toLowerCase();
+                    return name.contains(_searchKeyword);
+                  }).toList();
+
+                  // Empty State
+                  if (filteredDocs.isEmpty) {
+                    return const Center(child: Text("No folders found"));
+                  }
+
+                  return GridView.builder(
+                    itemCount: filteredDocs.length,
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 15,
+                      mainAxisSpacing: 15,
+                      childAspectRatio: 1.1,
+                    ),
+                    itemBuilder: (context, index) {
+                      return _buildFolderCard(filteredDocs[index]);
+                    },
+                  );
                 },
               ),
             ),
           ],
         ),
       ),
-      // Mock Bottom Nav
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        currentIndex: 4,
-        selectedItemColor: const Color(0xFF4A72FF),
-        unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.calendar_today), label: "Calendar"),
-          BottomNavigationBarItem(icon: Icon(Icons.book), label: "Tasks"),
-          BottomNavigationBarItem(icon: Icon(Icons.school), label: "Classes"),
-          BottomNavigationBarItem(icon: Icon(Icons.folder), label: "Folders"),
-        ],
-      ),
     );
   }
 
-//Widget design for how each folder card looks
-  Widget _buildFolderCard(FolderData folder) {
+  // --- CARD WIDGET ---
+  Widget _buildFolderCard(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    final String folderId = doc.id;
+    final String name = data['name'] ?? 'Untitled';
+    
+    // Formatting Date
+    String dateStr = "";
+    if (data['createdAt'] != null) {
+      Timestamp t = data['createdAt'];
+      dateStr = DateFormat('dd/MM/yyyy').format(t.toDate());
+    }
+
+    // Recovering Colors from Integers
+    Color bgColor = Color(data['colorValue'] ?? 0xFFE3F2FD);
+    Color iconColor = Color(data['iconColorValue'] ?? 0xFF4285F4);
+
     return GestureDetector(
       onTap: () {
-        // NAVIGATE TO THE SECOND FILE
         Navigator.push(
             context,
             MaterialPageRoute(
-                builder: (context) => FilesListPage(folderName: folder.name)));
+                builder: (context) => FilesListPage(
+                  folderName: name,
+                  folderId: folderId, // <--- ADD THIS
+                )));
       },
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: folder.color,
+          color: bgColor,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Column(
@@ -196,22 +207,45 @@ class _FoldersGridPageState extends State<FoldersGridPage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Icon(Icons.folder, color: folder.iconColor, size: 40),
-                const Icon(Icons.more_vert, color: Colors.black54),
+                Icon(Icons.folder, color: iconColor, size: 40),
+                
+                // POPUP MENU (From FeatureUtils)
+                FeatureUtils.buildMoreMenu(
+                  onRename: () {
+                    FeatureUtils.showRenameDialog(
+                      context, 
+                      name, 
+                      (newName) {
+                        // Call Firestore Service
+                        _folderService.renameFolder(folderId, newName);
+                      }
+                    );
+                  },
+                  onDelete: () {
+                    // Call Firestore Service
+                    _folderService.deleteFolder(folderId);
+                    
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("Deleted $name"))
+                    );
+                  },
+                ),
               ],
             ),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  folder.name,
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: folder.iconColor.withOpacity(0.8)),
+                      color: iconColor.withOpacity(0.8)),
                 ),
                 const SizedBox(height: 4),
-                Text(folder.date,
+                Text(dateStr,
                     style: const TextStyle(fontSize: 12, color: Colors.grey)),
               ],
             )

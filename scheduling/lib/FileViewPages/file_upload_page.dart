@@ -1,39 +1,87 @@
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart'; // Import File Picker
+import 'package:scheduling/FirebaseServices/storage_service.dart'; // Import your Service
 
 class FileUploadPage extends StatefulWidget {
-  const FileUploadPage({super.key});
+  final String folderId;
+  final String userId;
+
+  const FileUploadPage({
+    super.key, 
+    required this.folderId, 
+    required this.userId
+  });
 
   @override
   State<FileUploadPage> createState() => _FileUploadPageState();
 }
 
 class _FileUploadPageState extends State<FileUploadPage> {
-  // --- MOCK STATE ---
-  // In the real app, this list will fill up when user picks files
-  final List<Map<String, String>> _pickedFiles = [
-    {
-      "name": "Lecture 10.pdf",
-      "size": "5.3MB",
-      "type": "pdf",
+  // Store actual PlatformFiles here
+  List<PlatformFile> _pickedFiles = [];
+  bool _isUploading = false;
+
+  // 1. PICK FILES FUNCTION
+  Future<void> _pickFiles() async {
+    final result = await FilePicker.platform.pickFiles(
+      allowMultiple: true,
+      type: FileType.any, // Allows PDF, Images, Videos, etc.
+    );
+
+    if (result != null) {
+      setState(() {
+        _pickedFiles.addAll(result.files);
+      });
     }
-  ];
+  }
+
+  // 2. UPLOAD FUNCTION
+  Future<void> _uploadAllFiles() async {
+    if (_pickedFiles.isEmpty) return;
+
+    setState(() => _isUploading = true);
+
+    try {
+      // Loop through all staged files and upload one by one
+      for (var file in _pickedFiles) {
+        await StorageService().uploadFile(
+          userId: widget.userId,
+          folderId: widget.folderId,
+          file: file,
+        );
+      }
+      
+      // Success: Go back
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("All files uploaded successfully!")),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      print("Upload Error: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: $e")),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isUploading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
+        title: const Text("Upload", style: TextStyle(color: Colors.black)),
         backgroundColor: Colors.white,
         elevation: 0,
-        title: const Text(
-          "Upload",
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-        ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.black, size: 20),
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        centerTitle: true,
       ),
       body: SafeArea(
         child: Padding(
@@ -41,102 +89,84 @@ class _FileUploadPageState extends State<FileUploadPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header Text
               const Text(
                 "Media Upload",
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                "Add your documents here, and you can upload up to 5 files max",
-                style: TextStyle(fontSize: 14, color: Colors.grey[600], height: 1.5),
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 30),
 
-              // 1. THE "DROP ZONE" (Blue Dashed Area)
-              Container(
-                width: double.infinity,
-                height: 200,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF5F8FF), // Very light blue bg
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: const Color(0xFF4A72FF).withOpacity(0.5), // Blue border
-                    width: 1.5,
-                    style: BorderStyle.solid, // (Flutter needs a package for dashed borders, solid is standard)
+              // DROP ZONE (Now clickable)
+              GestureDetector(
+                onTap: _pickFiles, // Click anywhere to pick
+                child: Container(
+                  width: double.infinity,
+                  height: 200,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5F8FF),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: const Color(0xFF4A72FF).withOpacity(0.5),
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 60,
+                        height: 60,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF4A72FF),
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        child: const Icon(Icons.cloud_upload_outlined,
+                            color: Colors.white, size: 30),
+                      ),
+                      const SizedBox(height: 20),
+                      const Text(
+                        "Tap to browse files",
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ],
                   ),
                 ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // The Blue Folder Icon
-                    Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF4A72FF),
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      child: const Icon(Icons.cloud_upload_outlined, color: Colors.white, size: 30),
-                    ),
-                    const SizedBox(height: 20),
-                    const Text(
-                      "Click on the button below to upload your files",
-                      style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
-                    ),
-                    const SizedBox(height: 10),
-                    
-                    // "Browse Files" Button
-                    OutlinedButton(
-                      onPressed: () {
-                        // Logic to open File Picker
-                      },
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Color(0xFF4A72FF)),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
-                      ),
-                      child: const Text(
-                        "Browse files",
-                        style: TextStyle(color: Color(0xFF4A72FF), fontWeight: FontWeight.bold),
-                      ),
-                    )
-                  ],
-                ),
               ),
               const SizedBox(height: 30),
 
-              // 2. THE SELECTED FILES LIST
+              // FILES LIST
               Expanded(
                 child: ListView.separated(
                   itemCount: _pickedFiles.length,
                   separatorBuilder: (context, index) => const SizedBox(height: 15),
                   itemBuilder: (context, index) {
-                    final file = _pickedFiles[index];
-                    return _buildFileItem(file);
+                    return _buildFileItem(_pickedFiles[index]);
                   },
                 ),
               ),
 
-              // 3. THE SAVE BUTTON
+              // SAVE BUTTON
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {
-                     Navigator.pop(context);
-                  },
+                  onPressed: _isUploading ? null : _uploadAllFiles,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF4A72FF),
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    elevation: 2,
                   ),
-                  child: const Text(
-                    "Save",
-                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
+                  child: _isUploading
+                      ? const SizedBox(
+                          height: 20, width: 20, 
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+                        )
+                      : const Text(
+                          "Save",
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold),
+                        ),
                 ),
               ),
             ],
@@ -146,8 +176,21 @@ class _FileUploadPageState extends State<FileUploadPage> {
     );
   }
 
-  // Helper widget for the "Lecture 10.pdf" card
-  Widget _buildFileItem(Map<String, String> file) {
+  Widget _buildFileItem(PlatformFile file) {
+    // Determine icon based on extension
+    IconData icon = Icons.insert_drive_file;
+    Color color = Colors.grey;
+    if (file.extension == 'pdf') {
+      icon = Icons.picture_as_pdf;
+      color = Colors.red;
+    } else if (['jpg', 'png', 'jpeg'].contains(file.extension)) {
+      icon = Icons.image;
+      color = Colors.blue;
+    } else if (['mp4', 'mov'].contains(file.extension)) {
+      icon = Icons.movie;
+      color = Colors.black;
+    }
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -156,40 +199,27 @@ class _FileUploadPageState extends State<FileUploadPage> {
       ),
       child: Row(
         children: [
-          // Icon Box
-          Container(
-            width: 45,
-            height: 45,
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFEBEE), // Light Red for PDF
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(Icons.picture_as_pdf, color: Color(0xFFFF7043), size: 24),
-          ),
+          Icon(icon, color: color, size: 30),
           const SizedBox(width: 15),
-          
-          // Text Info
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  file["name"]!,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                  file.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(height: 4),
                 Text(
-                  file["size"]!,
+                  "${(file.size / 1024).toStringAsFixed(1)} KB",
                   style: TextStyle(color: Colors.grey[500], fontSize: 12),
                 ),
               ],
             ),
           ),
-
-          // Close Button
           GestureDetector(
             onTap: () {
-              // Logic to remove file from list
               setState(() {
                 _pickedFiles.remove(file);
               });

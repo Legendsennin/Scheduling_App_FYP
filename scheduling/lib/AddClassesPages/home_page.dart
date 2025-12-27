@@ -69,13 +69,7 @@ class HomePage extends StatelessWidget {
             ),
           ),
 
-          // C. Custom Floating Bottom Navigation Bar
-          Positioned(
-            bottom: 20,
-            left: 20,
-            right: 20,
-            child: _buildCustomBottomNav(),
-          ),
+         
         ],
       ),
     );
@@ -367,34 +361,7 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  // Custom Bottom Navigation Bar to look "Floating"
-  Widget _buildCustomBottomNav() {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.2),
-            spreadRadius: 5,
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          _navItem(Icons.home, "Home", true),
-          _navItem(Icons.calendar_today, "Calendar", false),
-          _navItem(Icons.book, "Tasks", false),
-          _navItem(Icons.school, "Classes", false),
-          _navItem(Icons.folder_open, "Folders", false),
-        ],
-      ),
-    );
-  }
+  
 
   Widget _navItem(IconData icon, String label, bool isActive) {
     return Column(

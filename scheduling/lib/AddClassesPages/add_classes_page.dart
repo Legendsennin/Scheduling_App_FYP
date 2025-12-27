@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import '/FirebaseServices/firestore_service.dart'; // <--- 1. MISSING IMPORT ADDED
+import 'package:firebase_auth/firebase_auth.dart'; // <--- NEW IMPORT
+import '/FirebaseServices/firestore_service.dart';
+import 'package:scheduling/FirebaseServices/folder_service.dart'; // <--- NEW IMPORT (Check path matches your project)
 
 class AddClassesPage extends StatefulWidget {
   const AddClassesPage({super.key});
@@ -9,6 +11,12 @@ class AddClassesPage extends StatefulWidget {
 }
 
 class _AddClassesPageState extends State<AddClassesPage> {
+  // --- NEW FEATURE: AUTO-CREATE FOLDER (FIXED) ---
+                    // 1. Define the temporary ID to match FoldersGridPage
+            final String tempUserId = "student_test_user_001"; 
+
+
+  
   // --- STATE VARIABLES ---
   final TextEditingController _subjectController = TextEditingController();
   final TextEditingController _venueController = TextEditingController();
@@ -43,7 +51,7 @@ class _AddClassesPageState extends State<AddClassesPage> {
     const Color(0xFFFF7043),
   ];
 
-  // Loading state to prevent double-clicks
+  // Loading state
   bool _isLoading = false;
 
   @override
@@ -88,58 +96,56 @@ class _AddClassesPageState extends State<AddClassesPage> {
               Wrap(
                 spacing: 12,
                 runSpacing: 12,
-                children:
-                    _days.map((day) {
-                      final isSelected = _selectedDays.contains(day);
-                      return GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            if (isSelected) {
-                              _selectedDays.remove(day);
-                            } else {
-                              _selectedDays.add(day);
-                            }
-                          });
-                        },
-                        child: Container(
-                          width: 60,
-                          height: 40,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              if (isSelected)
-                                BoxShadow(
-                                  color: Colors.blue.withOpacity(0.3),
-                                  blurRadius: 8,
-                                  spreadRadius: 2,
-                                )
-                              else
-                                BoxShadow(
-                                  color: Colors.grey.withOpacity(0.1),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
-                                ),
-                            ],
-                            border:
-                                isSelected
-                                    ? Border.all(
-                                      color: Colors.lightBlueAccent,
-                                      width: 2,
-                                    )
-                                    : null,
-                          ),
-                          child: Text(
-                            day,
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: isSelected ? Colors.black : Colors.black87,
+                children: _days.map((day) {
+                  final isSelected = _selectedDays.contains(day);
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        if (isSelected) {
+                          _selectedDays.remove(day);
+                        } else {
+                          _selectedDays.add(day);
+                        }
+                      });
+                    },
+                    child: Container(
+                      width: 60,
+                      height: 40,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          if (isSelected)
+                            BoxShadow(
+                              color: Colors.blue.withOpacity(0.3),
+                              blurRadius: 8,
+                              spreadRadius: 2,
+                            )
+                          else
+                            BoxShadow(
+                              color: Colors.grey.withOpacity(0.1),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
                             ),
-                          ),
+                        ],
+                        border: isSelected
+                            ? Border.all(
+                                color: Colors.lightBlueAccent,
+                                width: 2,
+                              )
+                            : null,
+                      ),
+                      child: Text(
+                        day,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: isSelected ? Colors.black : Colors.black87,
                         ),
-                      );
-                    }).toList(),
+                      ),
+                    ),
+                  );
+                }).toList(),
               ),
               const SizedBox(height: 25),
 
@@ -157,7 +163,7 @@ class _AddClassesPageState extends State<AddClassesPage> {
               // Color Picker
               const Center(
                 child: Text(
-                  "PickColor",
+                  "Pick Color",
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ),
@@ -179,34 +185,31 @@ class _AddClassesPageState extends State<AddClassesPage> {
                     child: Wrap(
                       spacing: 10,
                       runSpacing: 10,
-                      children:
-                          _availableColors.map((color) {
-                            return GestureDetector(
-                              onTap:
-                                  () => setState(() => _selectedColor = color),
-                              child: Container(
-                                width: 30,
-                                height: 30,
-                                decoration: BoxDecoration(
-                                  color: color,
-                                  shape: BoxShape.circle,
-                                  border:
-                                      _selectedColor == color
-                                          ? Border.all(
-                                            color: Colors.white,
-                                            width: 3,
-                                          )
-                                          : null,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.1),
-                                      blurRadius: 4,
-                                    ),
-                                  ],
+                      children: _availableColors.map((color) {
+                        return GestureDetector(
+                          onTap: () => setState(() => _selectedColor = color),
+                          child: Container(
+                            width: 30,
+                            height: 30,
+                            decoration: BoxDecoration(
+                              color: color,
+                              shape: BoxShape.circle,
+                              border: _selectedColor == color
+                                  ? Border.all(
+                                      color: Colors.white,
+                                      width: 3,
+                                    )
+                                  : null,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.1),
+                                  blurRadius: 4,
                                 ),
-                              ),
-                            );
-                          }).toList(),
+                              ],
+                            ),
+                          ),
+                        );
+                      }).toList(),
                     ),
                   ),
                 ],
@@ -235,39 +238,31 @@ class _AddClassesPageState extends State<AddClassesPage> {
                   const SizedBox(width: 20),
                   Expanded(
                     child: ElevatedButton(
-                      // 2. MISSING LOGIC FIXED HERE
-                      onPressed:
-                          _isLoading
-                              ? null
-                              : () async {
-                                // A. Basic Validation
-                                if (_subjectController.text.isEmpty) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        "Please enter a subject name",
-                                      ),
-                                    ),
-                                  );
-                                  return;
-                                }
+                      onPressed: _isLoading
+                          ? null
+                          : () async {
+                              // A. Basic Validation
+                              if (_subjectController.text.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text("Please enter a subject name"),
+                                  ),
+                                );
+                                return;
+                              }
 
-                                setState(
-                                  () => _isLoading = true,
-                                ); // Show loading state
+                              setState(() => _isLoading = true);
 
+                              try {
                                 // B. Format Data
                                 String formatStart =
                                     "$_startHour:$_startMinute $_startAmPm";
                                 String formatEnd =
                                     "$_endHour:$_endMinute $_endAmPm";
 
-                                print(
-                                  "Attempting to add: ${_subjectController.text}",
-                                );
-
-                                // C. Call Firestore
+                                // C. Call Firestore (Save Class)
                                 await FirestoreService().addClass(
+                                  userId: tempUserId,
                                   title: _subjectController.text,
                                   venue: _venueController.text,
                                   lecturer: _lecturerController.text,
@@ -277,12 +272,37 @@ class _AddClassesPageState extends State<AddClassesPage> {
                                   colorValue: _selectedColor.value,
                                 );
 
+                                
+
+// 2. Call the service directly using the temp ID
+await FolderService().createFolderForClass(
+  tempUserId,
+  _subjectController.text, 
+  _selectedColor.value,
+);
+
+print("Auto-folder created for ${_subjectController.text}");
                                 // D. Close Page
                                 if (context.mounted) {
                                   setState(() => _isLoading = false);
                                   Navigator.pop(context);
+                                  
+                                  // Optional: Show success message
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text("Class added & Folder created!")),
+                                  );
                                 }
-                              },
+                              } catch (e) {
+                                // Error Handling
+                                print("Error adding class: $e");
+                                if (context.mounted) {
+                                  setState(() => _isLoading = false);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text("Error: $e")),
+                                  );
+                                }
+                              }
+                            },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF4A72FF),
                         padding: const EdgeInsets.symmetric(vertical: 15),
@@ -290,23 +310,22 @@ class _AddClassesPageState extends State<AddClassesPage> {
                           borderRadius: BorderRadius.circular(30),
                         ),
                       ),
-                      child:
-                          _isLoading
-                              ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              )
-                              : const Text(
-                                "Confirm",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
                               ),
+                            )
+                          : const Text(
+                              "Confirm",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                              ),
+                            ),
                     ),
                   ),
                 ],
@@ -360,22 +379,20 @@ class _AddClassesPageState extends State<AddClassesPage> {
           children: [
             _buildSpinner(
               value: hour.toString(),
-              onUp:
-                  () => setState(() {
-                    if (isStart) {
-                      _startHour = _startHour == 12 ? 1 : _startHour + 1;
-                    } else {
-                      _endHour = _endHour == 12 ? 1 : _endHour + 1;
-                    }
-                  }),
-              onDown:
-                  () => setState(() {
-                    if (isStart) {
-                      _startHour = _startHour == 1 ? 12 : _startHour - 1;
-                    } else {
-                      _endHour = _endHour == 1 ? 12 : _endHour - 1;
-                    }
-                  }),
+              onUp: () => setState(() {
+                if (isStart) {
+                  _startHour = _startHour == 12 ? 1 : _startHour + 1;
+                } else {
+                  _endHour = _endHour == 12 ? 1 : _endHour + 1;
+                }
+              }),
+              onDown: () => setState(() {
+                if (isStart) {
+                  _startHour = _startHour == 1 ? 12 : _startHour - 1;
+                } else {
+                  _endHour = _endHour == 1 ? 12 : _endHour - 1;
+                }
+              }),
             ),
             const Text(
               " : ",
@@ -383,39 +400,35 @@ class _AddClassesPageState extends State<AddClassesPage> {
             ),
             _buildSpinner(
               value: minute,
-              onUp:
-                  () => setState(() {
-                    if (isStart)
-                      _startMinute = _startMinute == "00" ? "30" : "00";
-                    else
-                      _endMinute = _endMinute == "00" ? "30" : "00";
-                  }),
-              onDown:
-                  () => setState(() {
-                    if (isStart)
-                      _startMinute = _startMinute == "00" ? "30" : "00";
-                    else
-                      _endMinute = _endMinute == "00" ? "30" : "00";
-                  }),
+              onUp: () => setState(() {
+                if (isStart)
+                  _startMinute = _startMinute == "00" ? "30" : "00";
+                else
+                  _endMinute = _endMinute == "00" ? "30" : "00";
+              }),
+              onDown: () => setState(() {
+                if (isStart)
+                  _startMinute = _startMinute == "00" ? "30" : "00";
+                else
+                  _endMinute = _endMinute == "00" ? "30" : "00";
+              }),
             ),
             const SizedBox(width: 10),
             _buildSpinner(
               value: amPm,
               width: 50,
-              onUp:
-                  () => setState(() {
-                    if (isStart)
-                      _startAmPm = _startAmPm == "AM" ? "PM" : "AM";
-                    else
-                      _endAmPm = _endAmPm == "AM" ? "PM" : "AM";
-                  }),
-              onDown:
-                  () => setState(() {
-                    if (isStart)
-                      _startAmPm = _startAmPm == "AM" ? "PM" : "AM";
-                    else
-                      _endAmPm = _endAmPm == "AM" ? "PM" : "AM";
-                  }),
+              onUp: () => setState(() {
+                if (isStart)
+                  _startAmPm = _startAmPm == "AM" ? "PM" : "AM";
+                else
+                  _endAmPm = _endAmPm == "AM" ? "PM" : "AM";
+              }),
+              onDown: () => setState(() {
+                if (isStart)
+                  _startAmPm = _startAmPm == "AM" ? "PM" : "AM";
+                else
+                  _endAmPm = _endAmPm == "AM" ? "PM" : "AM";
+              }),
             ),
           ],
         ),

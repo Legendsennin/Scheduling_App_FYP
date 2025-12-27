@@ -1,66 +1,87 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
-
-// Mock Model for Files
-class FileData {
-  final String name;
-  final String date;
-  final String type; // 'pdf', 'video'
-
-  FileData(this.name, this.date, this.type);
-}
+import 'package:scheduling/FirebaseServices/storage_service.dart'; // Import Service
+import 'file_upload_page.dart'; // Import Upload Page
+import 'feature_utils.dart'; // Your provided utils file
 
 class FilesListPage extends StatefulWidget {
   final String folderName;
+  final String folderId; // REQUIRED: To know which folder to query
 
-  const FilesListPage({super.key, required this.folderName});
+  const FilesListPage({
+    super.key,
+    required this.folderName,
+    required this.folderId,
+  });
 
   @override
   State<FilesListPage> createState() => _FilesListPageState();
 }
 
 class _FilesListPageState extends State<FilesListPage> {
-  // Mock Files Data (The Master List)
-  final List<FileData> _allFiles = [
-    FileData("Lecture 1", "Modified 29 sep 2022", "pdf"),
-    FileData("Lecture 2", "Modified 29 sep 2022", "pdf"),
-    FileData("Lecture 3.pdf", "Modified 29 sep 2022", "pdf"),
-    FileData("Lecture 4 Video.mp4", "Modified 29 sep 2022", "video"),
-    FileData("Lecture 5.pdf", "Modified 29 sep 2022", "pdf"),
-  ];
+  // Temp User ID
+  final String userId = "student_test_user_001"; 
+  // Search State
+  String _searchKeyword = "";
 
-  // The Display List
-  List<FileData> _filteredFiles = [];
 
-  @override
-  void initState() {
-    super.initState();
-    // Initialize display list with all files
-    _filteredFiles = _allFiles;
+  // --- OPEN FILE ---
+  void _handleFileTap(Map<String, dynamic> data) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Opening File...")),
+    );
+    
+    StorageService().openFile(data['url'], data['name']);
   }
 
-  // Filter Function for searching specific folders/files
-  void _runFilter(String enteredKeyword) {
-    List<FileData> results = [];
-    if (enteredKeyword.isEmpty) {
-      results = _allFiles;
-    } else {
-      results = _allFiles
-          .where((file) =>
-              file.name.toLowerCase().contains(enteredKeyword.toLowerCase()))
-          .toList();
+  
+
+  // 1. RENAME LOGIC (Updates the name in Firestore only)
+  Future<void> _handleRename(String docId, String newName) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('folders')
+          .doc(widget.folderId)
+          .collection('files')
+          .doc(docId)
+          .update({'name': newName}); // Only updates the display name
+          
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Renamed to $newName")),
+        );
+      }
+    } catch (e) {
+      print("Error renaming: $e");
     }
-
-    setState(() {
-      _filteredFiles = results;
-    });
   }
+
+  // 2. DELETE LOGIC (Deletes from Storage AND Firestore)
+  Future<void> _handleDelete(String docId, String storagePath) async {
+    try {
+      // Call your StorageService to delete both file and database entry
+      await StorageService().deleteFile(widget.folderId, docId, storagePath);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("File deleted")),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error deleting: $e")),
+      );
+    }
+  }
+  
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
+        title: Text(widget.folderName, style: const TextStyle(color: Colors.black)),
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
@@ -68,24 +89,59 @@ class _FilesListPageState extends State<FilesListPage> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
+      
+      floatingActionButton: SpeedDial(
+        icon: Icons.add,
+        overlayColor: Colors.white,
+        overlayOpacity: 0.6,
+        children: [
+          SpeedDialChild(
+            child: const Icon(Icons.cloud_upload, color: Colors.white),
+            label: 'Upload File',
+            backgroundColor: const Color(0xFF4A72FF),
+            onTap: () {
+              // Navigate to Upload Page with IDs
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => FileUploadPage(
+                    folderId: widget.folderId,
+                    userId: userId,
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
+
           children: [
-            // Header Title (Using widget.folderName because we are in a State class)
-            Text(
-              "${widget.folderName} 📂",
-              style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1A237E)),
+            const Row(
+              children: [
+                Text(
+                  "Folders and Files 📂",
+                  style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1A237E)),
+                ),
+              ],
             ),
             const SizedBox(height: 20),
 
-            // Search Bar
+            
+           // SEARCH BAR
             TextField(
-              onChanged: (value) => _runFilter(value), // Calls filter logic
+              onChanged: (value) {
+                setState(() {
+                  _searchKeyword = value.toLowerCase();
+                });
+              },
               decoration: InputDecoration(
                 hintText: "Search",
                 prefixIcon: const Icon(Icons.search),
@@ -99,109 +155,112 @@ class _FilesListPageState extends State<FilesListPage> {
               ),
             ),
             const SizedBox(height: 20),
-
-           
-
-            Text(widget.folderName,
-                style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87)),
-            const SizedBox(height: 10),
-
-            // THE FILE LIST (Uses _filteredFiles)
+            
             Expanded(
-              child: ListView.builder(
-                itemCount: _filteredFiles.length,
-                itemBuilder: (context, index) {
-                  return _buildFileRow(_filteredFiles[index]);
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('folders')
+                    .doc(widget.folderId)
+                    .collection('files')
+                    .orderBy('createdAt', descending: true)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return const Center(child: Text("No files yet. Upload one!"));
+                  }
+
+                  
+
+                  final docs = snapshot.data!.docs;
+
+                  return ListView.builder(
+                    itemCount: docs.length,
+                    itemBuilder: (context, index) {
+                      final doc = docs[index];
+                      final data = doc.data() as Map<String, dynamic>;
+                      final String docId = doc.id;
+
+                      return _buildFileRow(data, docId);
+                    },
+                  );
                 },
               ),
             ),
           ],
         ),
       ),
-      /*// Floating Action Button
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // Future logic for Upload Sheet
-        },
-        backgroundColor: const Color(0xFF4A72FF),
-        child: const Icon(Icons.add, color: Colors.white),
-      ),*/
-
-//Floating Add button with multiple options (upload file, add folder)
-      floatingActionButton: SpeedDial(
-        icon: Icons.add,
-        overlayColor: Colors.white,
-        overlayOpacity: 0.6,
-        children: [
-          SpeedDialChild(
-            child: const Icon(Icons.note_add, color: Colors.white),
-            label: 'Upload File',
-            backgroundColor: const Color(0xFF4A72FF),
-            onTap: () {
-// Navigate to the Upload Page
-                    Navigator.pushNamed(context, '/fileupload');            },
-          ),
-          SpeedDialChild(
-            child: const Icon(Icons.create_new_folder, color: Colors.white),
-            label: 'Add New Folder',
-            backgroundColor: const Color(0xFF4A72FF),
-            onTap: () {
-              // Logic for New Folder
-            },
-          ),
-        ],
-      )
     );
   }
 
-//Widget design for each file row looks
-  Widget _buildFileRow(FileData file) {
-    IconData icon;
-    Color iconColor;
-    Color bgColor;
+  Widget _buildFileRow(Map<String, dynamic> data, String docId) {
+    String type = data['type'] ?? 'file';
+    String fileName = data['name'] ?? 'Unknown';
+    String storagePath = data['storagePath'] ?? ''; // Need this for deletion!
 
-    if (file.type == 'video') {
-      icon = Icons.movie;
-      iconColor = Colors.black54;
-      bgColor = Colors.grey[200]!;
-    } else {
+    // --- Icon Styling Logic ---
+    IconData icon = Icons.insert_drive_file;
+    Color iconColor = Colors.grey;
+    Color bgColor = Colors.grey[100]!;
+
+    if (type.contains('pdf')) {
       icon = Icons.picture_as_pdf;
       iconColor = const Color(0xFFFF7043);
       bgColor = const Color(0xFFFFEBEE);
+    } else if (type.contains('mp4')) {
+      icon = Icons.movie;
+      iconColor = Colors.black87;
+      bgColor = Colors.blue[50]!;
+    } else if (['jpg', 'png', 'jpeg'].any((e) => type.contains(e))) {
+      icon = Icons.image;
+      iconColor = Colors.blue;
+      bgColor = Colors.blue[50]!;
     }
 
+    // --- The Row Widget ---
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
+        // Tap to Open
+        onTap: () => _handleFileTap(data), 
+        
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         tileColor: const Color(0xFFF5F7FA),
+        
+        // Leading Icon
         leading: Container(
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: bgColor,
-            borderRadius: BorderRadius.circular(8),
-          ),
+              color: bgColor, borderRadius: BorderRadius.circular(8)),
           child: Icon(icon, color: iconColor, size: 20),
         ),
-        title: Text(
-          file.name,
-          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+        
+        // File Info
+        title: Text(fileName,
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+        subtitle: Text(data['size'] ?? '', style: const TextStyle(fontSize: 12)),
+        
+        // --- THE 3-DOT MENU (From FeatureUtils) ---
+        trailing: FeatureUtils.buildMoreMenu(
+          onRename: () {
+            // Show the standard rename dialog
+            FeatureUtils.showRenameDialog(
+              context, 
+              fileName, // Current name
+              (newName) {
+                _handleRename(docId, newName); // Call our logic
+              },
+            );
+          },
+          onDelete: () {
+            // Confirm delete (you could add a confirmation dialog here if you wanted)
+            _handleDelete(docId, storagePath);
+          },
         ),
-        subtitle: Row(
-          children: [
-            const Icon(Icons.star, size: 12, color: Color(0xFF4A72FF)),
-            const SizedBox(width: 5),
-            Text(file.date, style: const TextStyle(fontSize: 12)),
-          ],
-        ),
-        trailing: const Icon(Icons.more_horiz, color: Colors.blue),
       ),
     );
   }

@@ -1,41 +1,39 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'add_classes_page.dart'; // Import your Add Page
-import 'package:scheduling/FirebaseServices/firestore_service.dart'; // Import your Service
+import 'package:scheduling/FirebaseServices/firestore_service.dart'; // Check path
 
-// 1. THE DATA MODEL
-// We keep this to make passing data to the card easier
-class ClassModel {
-  final String title;
+// 1. DATA MODEL
+class ExamModel {
+  final String subject;
+  final String date;
   final String time;
-  final String day;
-  final Color color;
   final String location;
-  final String lecturer;
+  final String topics;
+  final String seatNumber;
+  final DateTime fullDateTime;
+  final int colorValue; // <--- NEW
 
-  ClassModel({
-    required this.title,
+  ExamModel({
+    required this.subject,
+    required this.date,
     required this.time,
-    required this.day,
-    required this.color,
     required this.location,
-    required this.lecturer,
+    required this.topics,
+    required this.seatNumber,
+    required this.fullDateTime,
+    required this.colorValue, // <--- NEW
   });
 }
 
-class ClassesDisplayPage extends StatefulWidget {
-  const ClassesDisplayPage({super.key});
+class ExamListPage extends StatefulWidget {
+  const ExamListPage({super.key});
 
   @override
-  State<ClassesDisplayPage> createState() => _ClassesDisplayPageState();
+  State<ExamListPage> createState() => _ExamListPageState();
 }
 
-class _ClassesDisplayPageState extends State<ClassesDisplayPage> {
-  // We don't need the hardcoded List anymore!
-  // The StreamBuilder will handle the data source.
-
-  // 1. DEFINE USER ID (Required for the fix)
-  final String tempUserId = "student_test_user_001";
+class _ExamListPageState extends State<ExamListPage> {
+  final String tempUserId = "student_test_user_001"; // Must match add_exam_page
 
   @override
   Widget build(BuildContext context) {
@@ -46,8 +44,7 @@ class _ClassesDisplayPageState extends State<ClassesDisplayPage> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed:
-              () => Navigator.pop(context), // Or whatever nav logic you have
+          onPressed: () => Navigator.pop(context),
         ),
       ),
       body: SafeArea(
@@ -58,7 +55,7 @@ class _ClassesDisplayPageState extends State<ClassesDisplayPage> {
             children: [
               // Header
               const Text(
-                "Classes 📚",
+                "Exams 📝",
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
@@ -67,17 +64,14 @@ class _ClassesDisplayPageState extends State<ClassesDisplayPage> {
               ),
               const SizedBox(height: 20),
 
-              // Search and Add Button Row
+              // Search & Add Button
               Row(
                 children: [
                   const Icon(Icons.search, size: 28, color: Colors.black54),
                   const SizedBox(width: 15),
                   ElevatedButton(
                     onPressed: () {
-                      // Navigate to the Add Classes Page
-                      Navigator.pushNamed(
-                        context, '/addclasses',
-                      );
+                      Navigator.pushNamed(context, '/add_exam');
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF4A72FF),
@@ -90,7 +84,7 @@ class _ClassesDisplayPageState extends State<ClassesDisplayPage> {
                       ),
                     ),
                     child: const Text(
-                      "Add Classes +",
+                      "Add Exam +",
                       style: TextStyle(color: Colors.white),
                     ),
                   ),
@@ -101,62 +95,53 @@ class _ClassesDisplayPageState extends State<ClassesDisplayPage> {
               // 2. THE REAL-TIME LIST
               Expanded(
                 child: StreamBuilder<QuerySnapshot>(
-                  // Connect to the stream we created in FirestoreService
-                  stream: FirestoreService().getClassesStream(tempUserId),
+                  stream: FirestoreService().getExamsStream(tempUserId),
                   builder: (context, snapshot) {
-                    // Case 1: Waiting for connection or loading
+
+
+                    
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(child: CircularProgressIndicator());
                     }
 
-                    // Case 2: Error
                     if (snapshot.hasError) {
                       return const Center(child: Text("Something went wrong"));
                     }
 
-                    // Case 3: No data yet (The "Blank" state you asked for)
                     if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                       return const Center(
                         child: Text(
-                          "No classes added yet.\nClick 'Add Classes +' to start!",
+                          "No exams added yet.\nGood luck with your studies!",
                           textAlign: TextAlign.center,
                           style: TextStyle(color: Colors.grey, fontSize: 16),
                         ),
                       );
                     }
 
-                    // Case 4: We have data! Let's build the list.
                     final docs = snapshot.data!.docs;
 
                     return ListView.separated(
                       itemCount: docs.length,
-                      separatorBuilder:
-                          (context, index) => const SizedBox(height: 15),
+                      separatorBuilder: (context, index) => const SizedBox(height: 15),
                       itemBuilder: (context, index) {
-                        // Get the raw data from Firestore document
                         final data = docs[index].data() as Map<String, dynamic>;
 
-                        // Convert Firestore data to our ClassModel
-                        // We handle potential missing keys safely
-                        final classItem = ClassModel(
-                          title: data['title'] ?? 'No Title',
-                          // Combine start and end time for display
-                          time: "${data['startTime']} - ${data['endTime']}",
-                          // Join the list of days (e.g., ["Mon", "Wed"] -> "Mon, Wed")
-                          day:
-                              (data['days'] as List<dynamic>?)?.join(", ") ??
-                              "",
-                          // Convert the stored integer back to a Color object
-                          color: Color(data['color'] ?? 0xFF4A72FF),
+                        // Map Firestore data to Model
+                        final examItem = ExamModel(
+                          subject: data['subject'] ?? 'No Subject',
+                          date: data['date'] ?? '',
+                          time: data['time'] ?? '',
                           location: data['location'] ?? 'Unknown',
-                          lecturer: data['lecturer'] ?? 'Unknown',
+                          topics: data['topics'] ?? '',
+                          seatNumber: data['seatNumber'] ?? '',
+                          // Parse Timestamp back to DateTime
+                          fullDateTime: (data['fullDateTime'] as Timestamp).toDate(),
+                          colorValue: data['colorValue'] ?? 0xFFFF7043, // Default to orange if missing
                         );
 
-                        return ClassCardWidget(
-                          classData: classItem,
-                          onTap: () {
-                            _showClassDetails(context, classItem);
-                          },
+                        return ExamCardWidget(
+                          examData: examItem,
+                          onTap: () => _showExamDetails(context, examItem),
                         );
                       },
                     );
@@ -167,12 +152,14 @@ class _ClassesDisplayPageState extends State<ClassesDisplayPage> {
           ),
         ),
       ),
-    
     );
   }
 
-  // 3. POPUP DETAILS (Unchanged logic, just uses the data)
-  void _showClassDetails(BuildContext context, ClassModel data) {
+  // 3. POPUP DETAILS
+  void _showExamDetails(BuildContext context, ExamModel data) {
+    // We use a distinct color for Exams (e.g., Orange/Coral)
+    const Color examCardColor = Color(0xFFFF7043); 
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -180,7 +167,7 @@ class _ClassesDisplayPageState extends State<ClassesDisplayPage> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20.0),
           ),
-          backgroundColor: data.color,
+          backgroundColor: examCardColor,
           child: Padding(
             padding: const EdgeInsets.all(20.0),
             child: Column(
@@ -188,7 +175,7 @@ class _ClassesDisplayPageState extends State<ClassesDisplayPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  data.title,
+                  data.subject,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 22,
@@ -197,14 +184,17 @@ class _ClassesDisplayPageState extends State<ClassesDisplayPage> {
                 ),
                 const SizedBox(height: 30),
 
-                _buildDetailRow(Icons.access_time, "${data.day}\n${data.time}"),
-                const SizedBox(height: 20),
-
+                _buildDetailRow(Icons.calendar_today, data.date),
+                const SizedBox(height: 15),
+                _buildDetailRow(Icons.access_time, data.time),
+                const SizedBox(height: 15),
                 _buildDetailRow(Icons.location_on_outlined, data.location),
-                const SizedBox(height: 20),
-
-                _buildDetailRow(Icons.person_outline, data.lecturer),
-                const SizedBox(height: 40),
+                const SizedBox(height: 15),
+                _buildDetailRow(Icons.chair, "Seat: ${data.seatNumber}"),
+                const SizedBox(height: 15),
+                _buildDetailRow(Icons.book, "Topics: ${data.topics}"),
+                
+                const SizedBox(height: 30),
 
                 Center(
                   child: SizedBox(
@@ -212,9 +202,7 @@ class _ClassesDisplayPageState extends State<ClassesDisplayPage> {
                     child: ElevatedButton(
                       onPressed: () => Navigator.pop(context),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white.withOpacity(
-                          0.2,
-                        ), // Slight transparency
+                        backgroundColor: Colors.white.withOpacity(0.2),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(30),
                         ),
@@ -239,6 +227,9 @@ class _ClassesDisplayPageState extends State<ClassesDisplayPage> {
     );
   }
 
+
+
+
   Widget _buildDetailRow(IconData icon, String text) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -249,12 +240,12 @@ class _ClassesDisplayPageState extends State<ClassesDisplayPage> {
             shape: BoxShape.circle,
             color: Colors.white,
           ),
-          child: Icon(icon, color: Colors.black87, size: 24),
+          child: Icon(icon, color: Colors.black87, size: 20),
         ),
-        const SizedBox(width: 20),
+        const SizedBox(width: 15),
         Expanded(
           child: Text(
-            text,
+            text.isEmpty ? "N/A" : text,
             style: const TextStyle(
               color: Colors.white,
               fontSize: 16,
@@ -267,42 +258,64 @@ class _ClassesDisplayPageState extends State<ClassesDisplayPage> {
   }
 }
 
-// 4. THE REUSABLE WIDGET (Unchanged)
-class ClassCardWidget extends StatelessWidget {
-  final ClassModel classData;
+// 4. REUSABLE CARD WIDGET
+class ExamCardWidget extends StatelessWidget {
+  final ExamModel examData;
   final VoidCallback onTap;
 
-  const ClassCardWidget({
+  const ExamCardWidget({
     super.key,
-    required this.classData,
+    required this.examData,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    // Dynamic countdown text (optional feature)
+    final daysLeft = examData.fullDateTime.difference(DateTime.now()).inDays;
+    String statusText = daysLeft < 0 
+        ? "Completed" 
+        : daysLeft == 0 ? "Today!" : "in $daysLeft days";
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: classData.color,
+          color: Color(examData.colorValue), // Light orange background for cards
           borderRadius: BorderRadius.circular(20),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              classData.title,
-              style: const TextStyle(
-                color: Colors.black87,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  examData.subject,
+                  style: const TextStyle(
+                    color: Colors.black87,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    statusText,
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
+                )
+              ],
             ),
             const SizedBox(height: 8),
             Text(
-              "${classData.time}, ${classData.day}",
+              "${examData.date} • ${examData.time}",
               style: TextStyle(
                 color: Colors.black.withOpacity(0.6),
                 fontSize: 14,
@@ -313,4 +326,7 @@ class ClassCardWidget extends StatelessWidget {
       ),
     );
   }
+
+  
 }
+

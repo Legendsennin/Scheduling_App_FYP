@@ -39,6 +39,12 @@ dependencies:
   cloud_firestore: ^6.1.0
   #multiple floating action buttons with animation
   flutter_speed_dial: ^4.3.0
+  intl: ^0.20.2
+  file_picker: ^10.3.8      # To select files
+  firebase_storage: ^13.0.5 # To store the actual PDF/MP4 files
+  open_filex: ^4.7.0        # To open files in native Android viewer
+  path_provider: ^2.1.5     # To find a temp folder to save downloaded files
+  http: ^1.6.0              # To download the file bytes
 
 dev_dependencies:
   flutter_test:
